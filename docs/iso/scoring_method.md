@@ -127,7 +127,39 @@ Every override is recorded in the audit trail with the triggering indicator and
 reason, so the escalation is fully traceable. The trigger values have the same
 governance-default status as the thresholds above and are configurable.
 
-## 7. Known limitations
+## 7. Initial vs residual risk
+
+Steps 1–6 produce the **initial risk** — risk before risk-control measures.
+Residual risk is computed by re-running the identical formulas after applying
+the declared controls:
+
+- Each control lists the indicators it addresses and an integer reduction
+  (0–4 steps) on the scaled **likelihood** and/or **detectability** axes.
+  Reductions from multiple controls accumulate; each axis is floored at 1.
+- **Impact and the response axis are never modified by a control.** Severity of
+  harm is reduced by changing the design (i.e. re-answering the assessment),
+  not by annotating it — so a monitoring control cannot buy off the severity
+  guard (§6), which is applied to the residual pass as well.
+- Control status gates the effect: `verified` and `implemented` controls apply
+  (the latter flagged as unverified in the report); `planned` controls are
+  reported but numerically inert.
+
+The gate decision is taken on **residual** risk; the initial figures are always
+reported alongside, and a per-indicator **traceability** block links each
+hazard indicator → controls applied → residual severity → residual decision.
+With no controls supplied, residual equals initial by construction.
+
+## 8. Sensitivity (uncertainty) analysis
+
+Indicator inputs are coarse expert judgements, so each carries roughly ±1 of
+honest uncertainty. The report therefore includes a one-at-a-time analysis:
+every effective likelihood/impact/detectability value is perturbed by ±1
+(clamped to 1–5), the full residual classification is re-run, and every
+domain-band or overall-decision flip is recorded with the exact input that
+caused it. Domains that flip under any single step are listed as
+`fragile_domains`; a fragile classification should be reviewed, not gated on.
+
+## 9. Known limitations
 
 These are documented deliberately; they bound what a result may be relied on for.
 

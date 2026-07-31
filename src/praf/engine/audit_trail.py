@@ -32,6 +32,12 @@ def build_audit_trail(
     input_completeness: Optional[Dict[str, Any]] = None,
     severity_overrides: Optional[List[SeverityOverride]] = None,
     generated_at: Optional[str] = None,
+    initial_summary: Optional[Dict[str, Any]] = None,
+    residual_summary: Optional[Dict[str, Any]] = None,
+    controls: Optional[List[Dict[str, Any]]] = None,
+    control_issues: Optional[List[str]] = None,
+    traceability: Optional[List[Dict[str, Any]]] = None,
+    sensitivity: Optional[Dict[str, Any]] = None,
 ) -> List[AuditEntry]:
     """Assemble a traceable record of an assessment.
 
@@ -85,6 +91,20 @@ def build_audit_trail(
                 ],
             )
         )
+
+    # --- Initial vs residual, controls, traceability, sensitivity ---------
+    if initial_summary is not None:
+        entries.append(AuditEntry(key="initial", value=initial_summary))
+    if residual_summary is not None:
+        entries.append(AuditEntry(key="residual", value=residual_summary))
+    if controls is not None:
+        entries.append(AuditEntry(key="controls", value=controls))
+    if control_issues:
+        entries.append(AuditEntry(key="control_issues", value=control_issues))
+    if traceability is not None:
+        entries.append(AuditEntry(key="traceability", value=traceability))
+    if sensitivity is not None:
+        entries.append(AuditEntry(key="sensitivity", value=sensitivity))
 
     entries.append(AuditEntry(key="indicator_details", value=indicator_details))
     entries.append(AuditEntry(key="local_scores", value=local_scores))

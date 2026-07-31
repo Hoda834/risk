@@ -4,17 +4,19 @@ import json
 import sys
 from typing import List, Optional
 
-from praf.domain import Context, Activity, ProjectStage
+from praf.domain import Context, Activity, ProjectStage, INDICATOR_LIBRARY
+from praf.domain.controls import parse_controls, ControlDefinitionError
 from praf.engine.pipeline import run_assessment
 from praf.io.loaders import load_json_inputs, InputLoadError
 from praf.io.exporters import export_json_report
 from praf.config.defaults import Defaults
 
 _USAGE = (
-    "Usage: python -m praf.cli.main <input.json> [output.json]\n"
+    "Usage: python -m praf.cli.main <input.json> [output.json] [--generated-at TIMESTAMP]\n"
     "\n"
     "Scores an indicator questionnaire and prints a JSON risk report to stdout.\n"
     "If <output.json> is given, the report is also written there.\n"
+    "--generated-at pins the report timestamp (ISO 8601) for reproducible output.\n"
     "See data/examples/example_inputs.json for the expected input shape."
 )
 
@@ -44,18 +46,42 @@ def main(argv: Optional[List[str]] = None) -> int:
         sys.stdout.write(_USAGE + "\n")
         return 0
 
+    # Extract the optional --generated-at flag (either "--generated-at TS" or
+    # "--generated-at=TS") before positional parsing.
+    generated_at: Optional[str] = None
+    positional: List[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--generated-at":
+            if i + 1 >= len(argv):
+                sys.stderr.write("error: --generated-at requires a value\n")
+                return 2
+            generated_at = argv[i + 1]
+            i += 2
+        elif arg.startswith("--generated-at="):
+            generated_at = arg.split("=", 1)[1]
+            i += 1
+        elif arg.startswith("--"):
+            sys.stderr.write(f"error: unknown option '{arg}'\n{_USAGE}\n")
+            return 2
+        else:
+            positional.append(arg)
+            i += 1
+
     # Missing required argument: usage on stderr, error exit code.
-    if not argv:
+    if not positional:
         sys.stderr.write(_USAGE + "\n")
         return 2
 
-    input_path = argv[0]
-    output_path = argv[1] if len(argv) > 1 else None
+    input_path = positional[0]
+    output_path = positional[1] if len(positional) > 1 else None
 
     try:
         loaded = load_json_inputs(input_path)
         ctx = _resolve_context(loaded.context)
-    except InputLoadError as exc:
+        parsed = parse_controls(loaded.controls, list(INDICATOR_LIBRARY.keys()))
+    except (InputLoadError, ControlDefinitionError) as exc:
         sys.stderr.write(f"error: {exc}\n")
         return 1
 
@@ -66,6 +92,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         detectability=loaded.detectability,
         context=ctx,
         defaults=Defaults(),
+        controls=parsed.controls,
+        control_issues=parsed.issues,
+        generated_at=generated_at,
     )
 
     # Surface data-quality issues on stderr so they are impossible to miss, while
@@ -81,6 +110,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         sys.stderr.write(
             "warning: unknown indicator ids ignored: "
             f"{', '.join(result.validation.unknown_indicator_ids)}\n"
+        )
+    for issue in parsed.issues:
+        sys.stderr.write(f"warning: {issue}\n")
+    if result.residual.unverified_applied:
+        sys.stderr.write(
+            "warning: residual risk relies on implemented-but-unverified controls: "
+            f"{', '.join(result.residual.unverified_applied)}\n"
         )
 
     text = json.dumps(result.report, ensure_ascii=False, indent=2)

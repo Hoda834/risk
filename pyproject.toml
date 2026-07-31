@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "praf"
-version = "0.2.0"
+version = "0.3.0"
 description = "Predictive Risk Assessment Framework"
 requires-python = ">=3.10"
 # The core scoring engine has no third-party runtime dependencies; streamlit is

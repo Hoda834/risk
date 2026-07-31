@@ -54,13 +54,23 @@ that decision.
    activity-dependent domain sensitivity weights.
 2. **Assessment** — answer the indicator library (response + likelihood, impact,
    detectability per indicator).
-3. **Scoring & classification** — the engine computes domain indices, applies the
-   severity guard, and classifies each domain.
-4. **Decision** — an overall gate (proceed / revise / escalate) is derived from
-   the most severe domain.
-5. **Record** — a full audit record is produced (§5).
-6. **Review** — results, especially any severity overrides and the input
-   completeness report, are reviewed by the responsible owner before action.
+3. **Initial risk** — the engine computes domain indices, applies the severity
+   guard, and classifies each domain *before* risk controls.
+4. **Risk controls & residual risk** — declared controls (with status and a
+   quantified likelihood/detectability effect) are applied and the
+   classification is recomputed. Only implemented/verified controls earn
+   numeric credit; planned ones are reported as intent. Impact is never reduced
+   by a control (see `docs/design_decisions.md`, ADR-007).
+5. **Decision gate** — the overall gate (proceed / revise / escalate) is taken
+   on **residual** risk, with initial figures reported alongside.
+6. **Traceability** — each indicator is linked to the controls applied to it and
+   the resulting level change (hazard → control → residual decision).
+7. **Sensitivity** — every input is perturbed ±1 and re-classified; fragile
+   domains (band flips under a single step) are named in the report.
+8. **Record** — a full audit record is produced (§5).
+9. **Review** — results — especially severity overrides, unverified controls,
+   fragile domains, and the input completeness report — are reviewed by the
+   responsible owner before action.
 
 ## 5. Records and traceability
 
@@ -72,8 +82,15 @@ Every run produces an audit trail containing:
 - **Context:** activity and stage.
 - **Input completeness:** which indicators were fully answered, which values were
   missing (and therefore defaulted), and any unrecognised inputs.
-- **Results:** per-domain scores and levels, the overall decision, and any
-  severity-guard overrides with their triggering indicator and reason.
+- **Results:** initial *and* residual per-domain scores and levels, the overall
+  decision (taken on residual risk), and any severity-guard overrides with
+  their triggering indicator and reason.
+- **Controls:** every declared control with status, effect, and whether it was
+  applied; unverified-but-applied controls are flagged.
+- **Traceability:** per indicator — question, initial severity, controls
+  applied, residual severity, and the domain's initial → residual level.
+- **Sensitivity:** the ±1 perturbation results, including every band flip and
+  the list of fragile domains.
 - **Full detail:** per-indicator inputs, scaled values, and contributions.
 
 Because the model version is recorded, a stored result can be tied to the exact

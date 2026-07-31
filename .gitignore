@@ -24,6 +24,6 @@ env/
 .idea/
 .DS_Store
 
-# Generated example output (produced by scripts/generate_example_outputs.py;
-# contains a run timestamp, so it is regenerated rather than tracked).
-data/examples/example_outputs.json
+# (data/examples/example_outputs.json is deliberately tracked: the generator
+# pins its timestamp, so the file is reproducible and doubles as a golden
+# regression reference.)

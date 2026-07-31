@@ -20,6 +20,9 @@ class LoadedInputs:
     impact: Dict[str, Any]
     detectability: Dict[str, Any]
     context: Dict[str, Any] = field(default_factory=dict)
+    # Raw entries of the optional "controls" section; parsed/validated against
+    # the indicator library later by praf.domain.controls.parse_controls.
+    controls: list = field(default_factory=list)
 
 
 def _as_dict(payload: Dict[str, Any], key: str) -> Dict[str, Any]:
@@ -64,10 +67,19 @@ def load_json_inputs(path: str) -> LoadedInputs:
             f"Field 'context' must be an object, got {type(context).__name__}."
         )
 
+    controls = payload.get("controls", [])
+    if controls is None:
+        controls = []
+    if not isinstance(controls, list):
+        raise InputLoadError(
+            f"Field 'controls' must be a list, got {type(controls).__name__}."
+        )
+
     return LoadedInputs(
         responses=_as_dict(payload, "responses"),
         likelihood=_as_dict(payload, "likelihood"),
         impact=_as_dict(payload, "impact"),
         detectability=_as_dict(payload, "detectability"),
         context=dict(context),
+        controls=list(controls),
     )
