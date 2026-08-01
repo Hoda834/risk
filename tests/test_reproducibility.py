@@ -7,6 +7,7 @@ scoring drift can never slip in silently.
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,10 @@ PINNED = "2026-01-01T00:00:00+00:00"
 
 
 def _fresh_report() -> dict:
+    # Make the subprocess work from a fresh clone too: the parent test run gets
+    # src/ via pytest's pythonpath option, but a child interpreter does not.
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
     out = subprocess.check_output(
         [
             sys.executable,
@@ -26,6 +31,7 @@ def _fresh_report() -> dict:
             PINNED,
         ],
         cwd=str(REPO),
+        env=env,
         stderr=subprocess.DEVNULL,
     )
     return json.loads(out)

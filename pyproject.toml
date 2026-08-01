@@ -16,6 +16,11 @@ dependencies = []
 app = ["streamlit>=1.36.0,<2.0.0"]
 dev = ["pytest>=7.0"]
 
+[tool.pytest.ini_options]
+# Let `pytest` work from a fresh clone without an editable install.
+pythonpath = ["src"]
+testpaths = ["tests"]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
