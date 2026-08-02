@@ -101,3 +101,76 @@ Each domain index is classified against two thresholds (defaults shown):
 | `≥ 70` | escalation_required | escalate |
 
 The overall decision is the most severe domain decision.
+
+The thresholds (`40` / `70`) are the framework's **default risk-acceptability
+criteria**. They are a design-stage governance policy, **not** a validated
+clinical threshold, and are configurable per project via `Defaults`. An inverted
+pair (`low ≥ high`) is rejected at construction time rather than silently
+flipping the classification.
+
+## 6. High-severity safeguard
+
+The domain index in step 4 is a *mean*, so a single catastrophic-severity hazard
+can be numerically diluted by low-scoring neighbours or a low likelihood. This
+conflicts with the ISO 14971 principle that severity of harm is the primary
+driver of risk.
+
+To counter this, an explicit **severity guard** runs *after* classification and
+can only ever **raise** a domain's level (never lower it):
+
+| Condition (on the scaled 1–5 axes) | Minimum resulting level |
+| --- | --- |
+| Impact = 5 **and** Likelihood ≥ 4 | escalation_required |
+| Impact = 5 (any likelihood) | action_required |
+
+Every override is recorded in the audit trail with the triggering indicator and
+reason, so the escalation is fully traceable. The trigger values have the same
+governance-default status as the thresholds above and are configurable.
+
+## 7. Initial vs residual risk
+
+Steps 1–6 produce the **initial risk** — risk before risk-control measures.
+Residual risk is computed by re-running the identical formulas after applying
+the declared controls:
+
+- Each control lists the indicators it addresses and an integer reduction
+  (0–4 steps) on the scaled **likelihood** and/or **detectability** axes.
+  Reductions from multiple controls accumulate; each axis is floored at 1.
+- **Impact and the response axis are never modified by a control.** Severity of
+  harm is reduced by changing the design (i.e. re-answering the assessment),
+  not by annotating it — so a monitoring control cannot buy off the severity
+  guard (§6), which is applied to the residual pass as well.
+- Control status gates the effect: `verified` and `implemented` controls apply
+  (the latter flagged as unverified in the report); `planned` controls are
+  reported but numerically inert.
+
+The gate decision is taken on **residual** risk; the initial figures are always
+reported alongside, and a per-indicator **traceability** block links each
+hazard indicator → controls applied → residual severity → residual decision.
+With no controls supplied, residual equals initial by construction.
+
+## 8. Sensitivity (uncertainty) analysis
+
+Indicator inputs are coarse expert judgements, so each carries roughly ±1 of
+honest uncertainty. The report therefore includes a one-at-a-time analysis:
+every effective likelihood/impact/detectability value is perturbed by ±1
+(clamped to 1–5), the full residual classification is re-run, and every
+domain-band or overall-decision flip is recorded with the exact input that
+caused it. Domains that flip under any single step are listed as
+`fragile_domains`; a fragile classification should be reviewed, not gated on.
+
+## 9. Known limitations
+
+These are documented deliberately; they bound what a result may be relied on for.
+
+- The four axes (Response, L, I, D) are **averaged with equal weight**. The
+  severity guard (§6) is the minimum-severity backstop for this, but the base
+  index still treats impact as one quarter of the signal. Detectability is an
+  FMEA concept included as a contributing axis, not part of the ISO 14971
+  Severity × Probability product.
+- Missing inputs are scored with the **neutral default (3)** so the pipeline
+  still runs, but every gap is reported in `input_completeness` and surfaced by
+  the CLI. A result over incomplete input must be read together with its
+  completeness report.
+- All weights and thresholds are **governance defaults, not empirically or
+  clinically derived**. See `risk_management_approach.md` for validation status.

@@ -23,3 +23,7 @@ env/
 .vscode/
 .idea/
 .DS_Store
+
+# (data/examples/example_outputs.json is deliberately tracked: the generator
+# pins its timestamp, so the file is reproducible and doubles as a golden
+# regression reference.)
